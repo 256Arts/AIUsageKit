@@ -113,17 +113,7 @@ private struct AIUsageRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label(assistant.name, systemImage: assistant.systemImage)
-
-                Spacer()
-
-                if let plan = usage?.plan {
-                    Text(plan)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Label(assistant.name, systemImage: assistant.systemImage)
 
             if let usage {
                 AIUsageBar(window: .fiveHour, usage: usage, display: display)

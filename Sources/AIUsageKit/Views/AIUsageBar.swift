@@ -22,16 +22,19 @@ public struct AIUsageBar: View {
     /// Whether the reset time stands in for the window's name — "2h 15m" rather than "5 Hours" —
     /// for the families with no room for both. The name stays while there is no time to show.
     var titlesReset = false
+    /// Home screen bars are taller; accessory widgets keep a compact track.
+    var trackHeight: CGFloat
     /// The moment the bar is shown, which for a widget's future timeline entry is not yet.
     var now: Date
 
-    public init(window: AIUsageWindow, usage: AIUsage, display: AIUsageDisplay = .current, showsReset: Bool = true, showsMetric: Bool = false, titlesReset: Bool = false, now: Date = .now) {
+    public init(window: AIUsageWindow, usage: AIUsage, display: AIUsageDisplay = .current, showsReset: Bool = true, showsMetric: Bool = false, titlesReset: Bool = false, trackHeight: CGFloat = 8, now: Date = .now) {
         self.window = window
         self.usage = usage
         self.display = display
         self.showsReset = showsReset
         self.showsMetric = showsMetric
         self.titlesReset = titlesReset
+        self.trackHeight = trackHeight
         self.now = now
     }
 
@@ -52,7 +55,7 @@ public struct AIUsageBar: View {
                         .monospacedDigit()
                 }
 
-                AIUsageTrack(fraction: display.fraction(of: limit), tint: display.tint(for: limit, in: window))
+                AIUsageTrack(fraction: display.fraction(of: limit), tint: display.tint(for: limit, in: window), height: trackHeight)
 
                 // The line is kept while there is no reset to show — a window nobody has started has
                 // none — so the bars sit the same distance apart either way.
@@ -108,7 +111,7 @@ public struct AIUsageTrack: View {
     }
 }
 
-/// One assistant as a block: who it is, which plan, and where both windows stand.
+/// One assistant as a block: who it is and where both windows stand.
 ///
 /// The shape the surfaces without a List use — the home screen widget, and the Mac's menu bar
 /// extra — where the two bars need a heading of their own rather than a row around them.
@@ -132,11 +135,6 @@ public struct AIUsageColumn: View {
 
                 Text(usage.assistant.name)
                     .fontWeight(.semibold)
-
-                if let plan = usage.plan {
-                    Text(plan)
-                        .foregroundStyle(.secondary)
-                }
             }
             .font(.footnote)
             .lineLimit(1)

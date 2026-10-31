@@ -360,8 +360,8 @@ public struct AIUsageWidgetView: View {
                     .font(.headline)
                     .widgetAccentable()
 
-                AIUsageBar(window: .fiveHour, usage: usage, display: display, showsReset: false, titlesReset: true, now: entry.date)
-                AIUsageBar(window: .week, usage: usage, display: display, showsReset: false, titlesReset: true, now: entry.date)
+                AIUsageBar(window: .fiveHour, usage: usage, display: display, showsReset: false, titlesReset: true, trackHeight: 4, now: entry.date)
+                AIUsageBar(window: .week, usage: usage, display: display, showsReset: false, titlesReset: true, trackHeight: 4, now: entry.date)
             }
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
