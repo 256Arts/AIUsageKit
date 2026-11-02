@@ -213,7 +213,7 @@ public struct AIUsageMenuBarLabel: View {
     }
 
     private var headline: AIUsage? {
-        shown.max { ($0.tightestLimit?.used ?? 0) < ($1.tightestLimit?.used ?? 0) }
+        shown.closestToRunningOut
     }
 
     private var display: AIUsageDisplay {

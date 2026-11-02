@@ -284,6 +284,15 @@ extension AIUsage {
         return canReachFiveHour ? .fiveHour : .week
     }
 
+    /// How much work is left before `tightestLimit` stops it, in five-hour windows — so a week and
+    /// a five hours compare. Not how full either is: a week at 50% still holds four or so windows of
+    /// work, which outlasts a five hours at 20%. `nil` with neither window reported.
+    public var headroom: Double? {
+        guard let window = tightestWindow, let limit = self[window] else { return nil }
+        let left = max(1 - limit.used, 0)
+        return window == .week ? left * Self.fiveHourWindowsPerWeek : left
+    }
+
     /// When the reading can next change, if a window has run out: its reset, since nothing can be
     /// spent until then. The later of the two when both have. `nil` while either can still be used.
     public func exhaustedUntil(at date: Date = .now) -> Date? {
@@ -331,5 +340,14 @@ extension AIUsage {
         let currentWindow = fiveHour.resetsAt == nil ? 0 : max(1 - fiveHour.used, 0)
         let laterWindows = (max(weekResets.timeIntervalSince(nextWindow), 0) / (5 * 60 * 60)).rounded(.up)
         return (currentWindow + laterWindows) / Self.fiveHourWindowsPerWeek > 1 - week.used
+    }
+}
+
+extension Sequence<AIUsage> {
+
+    /// The assistant whose limit is about to matter: the least `headroom`, for the surfaces with
+    /// room for one.
+    public var closestToRunningOut: AIUsage? {
+        self.min { ($0.headroom ?? .infinity) < ($1.headroom ?? .infinity) }
     }
 }

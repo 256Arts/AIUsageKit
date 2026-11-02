@@ -229,7 +229,7 @@ public struct AIUsageWidgetView: View {
     /// The one assistant the narrow families show: the configured one, else whichever is closest to
     /// running out — the one whose limit is about to matter.
     private var headline: AIUsage? {
-        entry.usage.map(display.relevant).max { ($0.tightestLimit?.used ?? 0) < ($1.tightestLimit?.used ?? 0) }
+        entry.usage.map(display.relevant).closestToRunningOut
     }
 
     public var body: some View {

@@ -163,7 +163,7 @@ enum AIUsageIntentData {
     static func usage(for requested: AIAssistant?) async throws -> AIUsage {
         let readings = try await all(requested)
 
-        guard let tightest = readings.max(by: { ($0.tightestLimit?.used ?? 0) < ($1.tightestLimit?.used ?? 0) }) else {
+        guard let tightest = readings.closestToRunningOut else {
             throw AIUsageError.notSignedIn
         }
         return tightest

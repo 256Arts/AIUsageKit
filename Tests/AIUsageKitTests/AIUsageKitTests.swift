@@ -78,6 +78,12 @@ struct DisplayTests {
         #expect(usage(fiveHour: 0.1, week: 0.99).tightestWindow == .week)
     }
 
+    @Test func headlinesTheFiveHoursOverAFullerWeekWithMoreLeft() {
+        let claude = usage(fiveHour: 0.2, week: 0.1)
+        let codex = AIUsage(assistant: .codex, plan: nil, fiveHour: nil, week: AIUsageLimit(used: 0.5, resetsAt: now.addingTimeInterval(3 * 24 * 60 * 60)), fetched: now)
+        #expect([codex, claude].closestToRunningOut?.assistant == .claude)
+    }
+
     @Test func exhaustedUntilTheLaterReset() {
         let exhausted = usage(fiveHour: 1, week: 1)
         #expect(exhausted.exhaustedUntil(at: now) == now.addingTimeInterval(3 * 24 * 60 * 60))
