@@ -14,7 +14,7 @@ iOS, macOS, watchOS, and visionOS 26.
   under an App Group `flock`, and the Mac refreshes 10 minutes early — a refresh token used twice
   gets its whole family revoked. `AIUsageCache` shares the last reading across the app, its widgets,
   and the menu bar extra.
-- **Views** — `AIUsageSection` (a `List` section, its assistants stacked or side by side), `AIUsageBar` / `AIUsageColumn` / `AIUsageTrack`,
+- **Views** — `AIUsageSection` (a `List` section, its assistants side by side), `AIUsageBar` / `AIUsageColumn` / `AIUsageTrack`,
   `AIUsageOptions` (menu contents), `AIUsageSignInSheet`, `AIUsageSnippet`.
 - **Widget** — `AIUsageWidget`, every home screen, Lock Screen, and watch face family.
 - **Mac menu bar extra** — `AIUsageMenuBar` + `AIUsageMenuBarLabel`, with `DockIcon` and `LoginItem`.
