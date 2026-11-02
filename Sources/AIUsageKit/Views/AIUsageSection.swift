@@ -16,10 +16,14 @@ public struct AIUsageSection: View {
     var refreshCount: Int
     /// What to say while no assistant is connected — where in the host to sign in, say.
     var placeholder: Text?
+    /// `.horizontal` lays the assistants side by side in one row, scrolling sideways once there
+    /// isn't room for them all.
+    var axis: Axis
 
-    public init(refreshCount: Int = 0, placeholder: Text? = nil) {
+    public init(refreshCount: Int = 0, placeholder: Text? = nil, axis: Axis = .vertical) {
         self.refreshCount = refreshCount
         self.placeholder = placeholder
+        self.axis = axis
     }
 
     @State private var assistants = AIAssistants.shared
@@ -50,8 +54,26 @@ public struct AIUsageSection: View {
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(connected) { assistant in
-                AIUsageRow(assistant: assistant, usage: usage[assistant], error: assistants.failures[assistant]?.localizedDescription, needsSignIn: assistants.needsSignIn(assistant), display: display)
+            if axis == .horizontal, !connected.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: Self.columnSpacing) {
+                        ForEach(connected) { assistant in
+                            row(for: assistant)
+                                // An equal share of the row, but never narrower than the bars read at.
+                                .containerRelativeFrame(.horizontal) { length, _ in
+                                    let spacing = Self.columnSpacing * CGFloat(connected.count - 1)
+                                    return max(Self.minimumColumnWidth, (length - spacing) / CGFloat(connected.count))
+                                }
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .scrollIndicators(.hidden)
+            } else {
+                ForEach(connected) { assistant in
+                    row(for: assistant)
+                }
             }
         } header: {
             HStack {
@@ -92,6 +114,13 @@ public struct AIUsageSection: View {
         .onChange(of: refreshCount) {
             Task { await load(maxAge: 0) }
         }
+    }
+
+    private static let columnSpacing: CGFloat = 20
+    private static let minimumColumnWidth: CGFloat = 180
+
+    private func row(for assistant: AIAssistant) -> some View {
+        AIUsageRow(assistant: assistant, usage: usage[assistant], error: assistants.failures[assistant]?.localizedDescription, needsSignIn: assistants.needsSignIn(assistant), display: display)
     }
 
     /// On appearing, and for a newly connected assistant; the minute-by-minute refresh is the app's.
@@ -425,6 +454,7 @@ public struct AIUsageSignInSheet: View {
 #Preview {
     List {
         AIUsageSection()
+        AIUsageSection(axis: .horizontal)
     }
 }
 #endif
