@@ -35,6 +35,74 @@
         }
       }
     },
+    "%@ Limit Reset" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@-Limit zurückgesetzt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Límite de %@ restablecido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Limite %@ réinitialisée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@の上限がリセットされました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@限额已重置"
+          }
+        }
+      }
+    },
+    "%@, projected %@ used by the reset" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@, voraussichtlich %@ bis zum Zurücksetzen verbraucht"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@, se prevé un %@ usado al restablecerse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@, %@ utilisé prévu d’ici la réinitialisation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@、リセットまでに%@使用の見込み"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@，预计重置前将使用%@"
+          }
+        }
+      }
+    },
     "Claude" : {
       "localizations" : {
         "de" : {
@@ -99,6 +167,40 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Codex"
+          }
+        }
+      }
+    },
+    "Notify When Limits Reset" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Bei Zurücksetzen der Limits benachrichtigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Notificar al restablecerse los límites"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Notifier à la réinitialisation des limites"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "上限のリセット時に通知"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "限额重置时通知"
           }
         }
       }
@@ -1221,6 +1323,40 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "登录 Claude 或 Codex，即可查看各自还剩多少限额。"
+          }
+        }
+      }
+    },
+    "Your %@ limit has reset." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dein Limit „%@“ wurde zurückgesetzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tu límite «%@» se ha restablecido."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Votre limite « %@ » a été réinitialisée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "「%@」の上限がリセットされました。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "你的“%@”限额已重置。"
           }
         }
       }
