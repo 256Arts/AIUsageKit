@@ -27,17 +27,42 @@ public enum AIUsageAPI {
 
         var fiveHour = claudeLimit(json["five_hour"], percentKey: "utilization")
         var week = claudeLimit(json["seven_day"], percentKey: "utilization")
+        // Per-model weeklies, keyed by what they cover. The named `seven_day_<model>` windows come
+        // first and an entry in `limits` replaces the same one, in the order the response gives.
+        var extras: [AIUsageExtraLimit] = []
+        func addExtra(_ key: String, _ object: [String: Any], percentKey: String) {
+            guard let limit = claudeLimit(object, percentKey: percentKey) else { return }
+
+            let extra = AIUsageExtraLimit(id: key, name: (object["display_name"] as? String) ?? (object["label"] as? String) ?? claudeLimitName(key), limit: limit)
+            if let index = extras.firstIndex(where: { $0.id == key }) {
+                extras[index] = extra
+            } else {
+                extras.append(extra)
+            }
+        }
+        for (key, value) in json.sorted(by: { $0.key < $1.key }) where key.hasPrefix("seven_day_") {
+            if let object = value as? [String: Any] {
+                addExtra(String(key.dropFirst("seven_day_".count)), object, percentKey: "utilization")
+            }
+        }
         // Newer responses null out the named windows and report every limit in `limits` instead, so
         // an entry there wins over whatever the named window said.
         for entry in json["limits"] as? [[String: Any]] ?? [] {
             switch entry["kind"] as? String {
             case "session": fiveHour = claudeLimit(entry, percentKey: "percent") ?? fiveHour
             case "weekly_all": week = claudeLimit(entry, percentKey: "percent") ?? week
+            case let kind? where kind.hasPrefix("weekly_"):
+                addExtra(String(kind.dropFirst("weekly_".count)), entry, percentKey: "percent")
             default: continue
             }
         }
 
-        return AIUsage(assistant: .claude, plan: signIn.plan, fiveHour: fiveHour, week: week, fetched: .now)
+        return AIUsage(assistant: .claude, plan: signIn.plan, fiveHour: fiveHour, week: week, extras: extras, fetched: .now)
+    }
+
+    /// "fable" → "Fable", "oauth_apps" → "Oauth Apps": a name for a limit the response only keys.
+    static func claudeLimitName(_ key: String) -> String {
+        key.split(separator: "_").map(\.capitalized).joined(separator: " ")
     }
 
     /// Both of Claude's shapes report a percentage `0...100` and an ISO 8601 reset time.

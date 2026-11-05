@@ -125,7 +125,19 @@ public struct AIUsageDisplay: Equatable, Sendable {
             plan: usage.plan,
             fiveHour: week == nil || usage.canReachFiveHour ? usage.fiveHour : nil,
             week: week,
+            extras: usage.extras,
             fetched: usage.fetched)
+    }
+
+    /// Where a bar's tick sits, `0...1` in the bar's own terms: how full the window is projected to
+    /// be when it resets, were the work to carry on at the rate it has so far. `nil` where there is
+    /// nothing to project — see `AIUsageLimit.projectedUsed`. A projection past the limit pins to the
+    /// end, which reads as "runs out before it resets".
+    public func projectedFraction(of limit: AIUsageLimit, in window: AIUsageWindow, at date: Date = .now) -> Double? {
+        guard let projected = limit.projectedUsed(in: window, at: date) else { return nil }
+
+        let used = min(projected, 1)
+        return metric == .used ? used : 1 - used
     }
 
     /// The part of the window this reading is about, `0...1` — what a bar or a gauge fills to.
@@ -229,7 +241,7 @@ public struct AIUsageDisplay: Equatable, Sendable {
         let shown = Set(usages.flatMap { usage in
             [AIUsageWindow.fiveHour, .week].compactMap { window in
                 relevant(usage)[window].flatMap { warning(for: $0, in: window, at: date) }
-            }
+            } + usage.extras.compactMap { warning(for: $0.limit, in: .week, at: date) }
         })
         var reasons: [String] = []
         if shown.contains(.orange) {
@@ -259,6 +271,23 @@ extension AIUsageLimit {
     public func pace(in window: AIUsageWindow, at date: Date = .now) -> Double {
         guard let resetsAt else { return 0 }
         return min(max(1 - resetsAt.timeIntervalSince(date) / window.duration, 0), 1)
+    }
+}
+
+extension AIUsageLimit {
+
+    /// How much of the window will be gone when it resets, at the rate it has been going: what is
+    /// spent so far, scaled up from the share of the window that has passed.
+    ///
+    /// `nil` before there is a rate to speak of — nothing spent, no reset time, or under a twentieth
+    /// of the window gone, where one job swings the figure wildly — and once the window is full.
+    public func projectedUsed(in window: AIUsageWindow, at date: Date = .now) -> Double? {
+        guard used > 0, used < 1 else { return nil }
+
+        let elapsed = pace(in: window, at: date)
+        guard resetsAt != nil, elapsed >= 0.05 else { return nil }
+
+        return used / elapsed
     }
 }
 

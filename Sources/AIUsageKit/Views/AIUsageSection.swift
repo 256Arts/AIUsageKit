@@ -134,6 +134,9 @@ private struct AIUsageRow: View {
             if let usage {
                 AIUsageBar(window: .fiveHour, usage: usage, display: display)
                 AIUsageBar(window: .week, usage: usage, display: display)
+                ForEach(usage.extras) { extra in
+                    AIUsageBar(window: .week, usage: usage, extra: extra, display: display)
+                }
             }
 
             // Shown under the last figures read, which have stopped moving until this is done.
@@ -183,6 +186,7 @@ public struct AIUsageOptions<StyleItems: View, MenuBarItems: View>: View {
     @AppStorage(AIUsageDefaultsKey.timeStyle, store: AIUsageKit.defaults) private var timeStyle: AIUsageTimeStyle = .relative
     @AppStorage(AIUsageDefaultsKey.goal, store: AIUsageKit.defaults) private var goal: AIUsageGoal = .none
     @AppStorage(AIUsageDefaultsKey.hidesUnreachable, store: AIUsageKit.defaults) private var hidesUnreachable = false
+    @AppStorage(AIUsageDefaultsKey.notifiesOnReset, store: AIUsageKit.defaults) private var notifiesOnReset = false
     #if os(macOS)
     @AppStorage(AIUsageDefaultsKey.menuBarExtra, store: AIUsageKit.defaults) private var showsMenuBarExtra = false
     #endif
@@ -225,6 +229,24 @@ public struct AIUsageOptions<StyleItems: View, MenuBarItems: View>: View {
             .pickerStyle(.menu)
 
             Toggle(String(localized: "Hide Irrelevant Limits", bundle: #bundle), isOn: binding($hidesUnreachable))
+
+            Toggle(String(localized: "Notify When Limits Reset", bundle: #bundle), isOn: Binding {
+                notifiesOnReset
+            } set: { newValue in
+                notifiesOnReset = newValue
+                Task {
+                    if newValue {
+                        // Refused permission leaves the toggle off rather than promising a notification.
+                        if await AIUsageNotifications.requestAuthorization() {
+                            await AIUsageNotifications.scheduleCached()
+                        } else {
+                            notifiesOnReset = false
+                        }
+                    } else {
+                        await AIUsageNotifications.cancelAll()
+                    }
+                }
+            })
         }
 
         #if os(macOS)

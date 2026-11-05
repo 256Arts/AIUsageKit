@@ -80,26 +80,56 @@ public struct AIUsageLimit: Codable, Hashable, Sendable {
     }
 }
 
+/// A weekly limit that applies to one model or feature on top of the overall week — Claude's cap on
+/// a single model, say. Metered over the same rolling week, so it is paced like one.
+public struct AIUsageExtraLimit: Codable, Hashable, Identifiable, Sendable {
+    /// Stable across readings, so a notification for it can be replaced rather than doubled.
+    public let id: String
+    /// What the limit covers, as the reader would say it — "Fable".
+    public let name: String
+    public let limit: AIUsageLimit
+
+    public init(id: String, name: String, limit: AIUsageLimit) {
+        self.id = id
+        self.name = name
+        self.limit = limit
+    }
+}
+
 /// One assistant's limits right now.
 ///
-/// Both assistants meter the same two windows — a rolling five hours and a rolling week — so both
-/// land here rather than in a per-assistant shape.
+/// Both assistants meter a rolling week, and may also meter a rolling five hours, so both land here
+/// rather than in a per-assistant shape. Limits beyond those two are `extras`.
 public struct AIUsage: Codable, Hashable, Identifiable, Sendable {
     public let assistant: AIAssistant
     /// The subscription the limits belong to, where the assistant names it.
     public let plan: String?
     public let fiveHour: AIUsageLimit?
     public let week: AIUsageLimit?
+    /// Further weekly limits, such as one model's own cap. Empty where the assistant reports none.
+    public let extras: [AIUsageExtraLimit]
     public let fetched: Date
 
     public var id: AIAssistant { assistant }
 
-    public init(assistant: AIAssistant, plan: String?, fiveHour: AIUsageLimit?, week: AIUsageLimit?, fetched: Date) {
+    public init(assistant: AIAssistant, plan: String?, fiveHour: AIUsageLimit?, week: AIUsageLimit?, extras: [AIUsageExtraLimit] = [], fetched: Date) {
         self.assistant = assistant
         self.plan = plan
         self.fiveHour = fiveHour
         self.week = week
+        self.extras = extras
         self.fetched = fetched
+    }
+
+    /// Readings cached before `extras` existed have none.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        assistant = try container.decode(AIAssistant.self, forKey: .assistant)
+        plan = try container.decodeIfPresent(String.self, forKey: .plan)
+        fiveHour = try container.decodeIfPresent(AIUsageLimit.self, forKey: .fiveHour)
+        week = try container.decodeIfPresent(AIUsageLimit.self, forKey: .week)
+        extras = try container.decodeIfPresent([AIUsageExtraLimit].self, forKey: .extras) ?? []
+        fetched = try container.decode(Date.self, forKey: .fetched)
     }
 }
 
@@ -141,6 +171,7 @@ extension AIUsage {
             plan: "Max",
             fiveHour: AIUsageLimit(used: 0.34, resetsAt: .now.addingTimeInterval(2 * 60 * 60)),
             week: AIUsageLimit(used: 0.61, resetsAt: .now.addingTimeInterval(3 * 24 * 60 * 60)),
+            extras: [AIUsageExtraLimit(id: "fable", name: "Fable", limit: AIUsageLimit(used: 0.22, resetsAt: .now.addingTimeInterval(3 * 24 * 60 * 60)))],
             fetched: .now.addingTimeInterval(-exampleAge)),
         AIUsage(
             assistant: .codex,

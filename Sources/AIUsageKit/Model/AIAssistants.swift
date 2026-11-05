@@ -90,6 +90,7 @@ public final class AIAssistants {
         signIns.removeAll { $0.assistant == assistant }
         persist()
         AIUsageCache.clear(assistant)
+        Task { await AIUsageNotifications.cancel(assistant) }
     }
 
     /// Read, change, write — so saving one assistant never writes back a stale copy of the other.
@@ -164,6 +165,7 @@ public final class AIAssistants {
             throw error
         }
         AIUsageCache.save(usage)
+        await AIUsageNotifications.schedule(usage)
         latest[assistant] = usage
         failures[assistant] = nil
         return usage

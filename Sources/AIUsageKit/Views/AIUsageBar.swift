@@ -12,8 +12,12 @@ public struct AIUsageBar: View {
 
     let window: AIUsageWindow
     let usage: AIUsage
+    /// Draws this limit in the week's place — its name for the title — rather than the window's own.
+    var extra: AIUsageExtraLimit?
 
     var display: AIUsageDisplay
+    /// Whether a tick shows where the bar is projected to stand when the window resets.
+    var showsProjection = true
     /// The accessory families and the small widget have no room for a second line per bar.
     var showsReset = true
     /// Whether the figure says which way round it is — "39% left" rather than "39%" — where there is
@@ -27,10 +31,12 @@ public struct AIUsageBar: View {
     /// The moment the bar is shown, which for a widget's future timeline entry is not yet.
     var now: Date
 
-    public init(window: AIUsageWindow, usage: AIUsage, display: AIUsageDisplay = .current, showsReset: Bool = true, showsMetric: Bool = false, titlesReset: Bool = false, trackHeight: CGFloat = 8, now: Date = .now) {
+    public init(window: AIUsageWindow, usage: AIUsage, extra: AIUsageExtraLimit? = nil, display: AIUsageDisplay = .current, showsProjection: Bool = true, showsReset: Bool = true, showsMetric: Bool = false, titlesReset: Bool = false, trackHeight: CGFloat = 8, now: Date = .now) {
         self.window = window
         self.usage = usage
+        self.extra = extra
         self.display = display
+        self.showsProjection = showsProjection
         self.showsReset = showsReset
         self.showsMetric = showsMetric
         self.titlesReset = titlesReset
@@ -39,14 +45,15 @@ public struct AIUsageBar: View {
     }
 
     public var body: some View {
-        if let limit = display.relevant(usage)[window] {
+        if let limit = extra?.limit ?? display.relevant(usage)[window] {
+            let title = extra?.name ?? window.title
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     if titlesReset, let resetsAt = limit.resetsAt, resetsAt > now, let countdown = display.countdown(to: resetsAt, from: now) {
                         Text(countdown)
                             .monospacedDigit()
                     } else {
-                        Text(window.title)
+                        Text(title)
                     }
 
                     Spacer()
@@ -55,7 +62,11 @@ public struct AIUsageBar: View {
                         .monospacedDigit()
                 }
 
-                AIUsageTrack(fraction: display.fraction(of: limit), tint: display.tint(for: limit, in: window), height: trackHeight)
+                AIUsageTrack(
+                    fraction: display.fraction(of: limit),
+                    tint: display.tint(for: limit, in: window),
+                    height: trackHeight,
+                    marker: showsProjection ? display.projectedFraction(of: limit, in: window, at: now) : nil)
 
                 // The line is kept while there is no reset to show — a window nobody has started has
                 // none — so the bars sit the same distance apart either way.
@@ -71,13 +82,24 @@ public struct AIUsageBar: View {
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(window.title))
-            .accessibilityValue(Text(display.summary(of: limit)))
+            .accessibilityLabel(Text(title))
+            .accessibilityValue(Text(accessibilityValue(of: limit)))
         }
     }
 }
 
-/// The bar on its own: a faint track and a fill.
+extension AIUsageBar {
+
+    private func accessibilityValue(of limit: AIUsageLimit) -> String {
+        let summary = display.summary(of: limit)
+        guard showsProjection, let projected = limit.projectedUsed(in: window, at: now) else { return summary }
+
+        let percent = min(projected, 1).formatted(.percent.precision(.fractionLength(0)))
+        return String(localized: "\(summary), projected \(percent) used by the reset", bundle: #bundle)
+    }
+}
+
+/// The bar on its own: a faint track and a fill, and optionally a tick marking a projection.
 ///
 /// Drawn rather than a `ProgressView`, because a tinted widget flattens a `ProgressView`'s track and
 /// fill into one solid colour, so the bar reads as full whatever the figure. Here the track keeps its
@@ -87,11 +109,14 @@ public struct AIUsageTrack: View {
     let fraction: Double
     var tint: Color
     var height: CGFloat
+    /// Where to draw a tick, `0...1` along the track — `nil` for none.
+    var marker: Double?
 
-    public init(fraction: Double, tint: Color = .accentColor, height: CGFloat = 4) {
+    public init(fraction: Double, tint: Color = .accentColor, height: CGFloat = 4, marker: Double? = nil) {
         self.fraction = fraction
         self.tint = tint
         self.height = height
+        self.marker = marker
     }
 
     public var body: some View {
@@ -107,6 +132,19 @@ public struct AIUsageTrack: View {
                         #endif
                 }
             }
+            .overlay {
+                if let marker {
+                    GeometryReader { proxy in
+                        let width: CGFloat = 2
+                        Capsule()
+                            .fill(.primary)
+                            .overlay(Capsule().stroke(.background, lineWidth: 0.5))
+                            .frame(width: width, height: height + 4)
+                            .offset(x: min(max(proxy.size.width * min(max(marker, 0), 1) - width / 2, 0), proxy.size.width - width))
+                            .frame(maxHeight: .infinity)
+                    }
+                }
+            }
             .frame(height: height)
     }
 }
@@ -120,11 +158,14 @@ public struct AIUsageColumn: View {
     let usage: AIUsage
     var display: AIUsageDisplay
     var showsMetric: Bool
+    /// Whether the assistant's further weekly limits get their own bars. Off where space is tight.
+    var showsExtras: Bool
 
-    public init(usage: AIUsage, display: AIUsageDisplay = .current, showsMetric: Bool = false) {
+    public init(usage: AIUsage, display: AIUsageDisplay = .current, showsMetric: Bool = false, showsExtras: Bool = false) {
         self.usage = usage
         self.display = display
         self.showsMetric = showsMetric
+        self.showsExtras = showsExtras
     }
 
     public var body: some View {
@@ -142,6 +183,11 @@ public struct AIUsageColumn: View {
 
             AIUsageBar(window: .fiveHour, usage: usage, display: display, showsMetric: showsMetric)
             AIUsageBar(window: .week, usage: usage, display: display, showsMetric: showsMetric)
+            if showsExtras {
+                ForEach(usage.extras) { extra in
+                    AIUsageBar(window: .week, usage: usage, extra: extra, display: display, showsMetric: showsMetric)
+                }
+            }
 
             Spacer(minLength: 0)
         }

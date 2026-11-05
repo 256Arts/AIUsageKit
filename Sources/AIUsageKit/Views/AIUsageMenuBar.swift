@@ -53,7 +53,7 @@ public struct AIUsageMenuBar: View {
                 } else {
                     // Both windows always, whatever the label hides: opening the menu is asking for the lot.
                     ForEach(usage) { usage in
-                        AIUsageColumn(usage: usage, display: AIUsageDisplay(metric: metric, timeStyle: timeStyle, goal: goal), showsMetric: true)
+                        AIUsageColumn(usage: usage, display: AIUsageDisplay(metric: metric, timeStyle: timeStyle, goal: goal), showsMetric: true, showsExtras: true)
                     }
                 }
 

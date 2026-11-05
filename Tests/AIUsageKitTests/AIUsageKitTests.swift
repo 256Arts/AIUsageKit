@@ -98,3 +98,45 @@ struct DisplayTests {
         #expect(relevant.fiveHour != nil)
     }
 }
+
+struct ProjectionTests {
+
+    private let now = Date.now
+    private let hour: TimeInterval = 60 * 60
+
+    @Test func projectsUsageToTheReset() throws {
+        // Two of five hours gone, 20% spent: 50% by the reset.
+        let limit = AIUsageLimit(used: 0.2, resetsAt: now.addingTimeInterval(3 * hour))
+        let projected = try #require(limit.projectedUsed(in: .fiveHour, at: now))
+        #expect(abs(projected - 0.5) < 0.001)
+    }
+
+    @Test func pinsAnOverrunToTheEndOfTheBar() {
+        let limit = AIUsageLimit(used: 0.6, resetsAt: now.addingTimeInterval(3 * hour))
+        let display = AIUsageDisplay.default
+        #expect(display.projectedFraction(of: limit, in: .fiveHour, at: now) == 1)
+        #expect(AIUsageDisplay(metric: .remaining, timeStyle: .relative, goal: .none).projectedFraction(of: limit, in: .fiveHour, at: now) == 0)
+    }
+
+    @Test func projectsNothingWithoutARate() {
+        #expect(AIUsageLimit(used: 0, resetsAt: now.addingTimeInterval(hour)).projectedUsed(in: .fiveHour, at: now) == nil)
+        #expect(AIUsageLimit(used: 0.1, resetsAt: nil).projectedUsed(in: .fiveHour, at: now) == nil)
+        // Barely a minute into the window.
+        #expect(AIUsageLimit(used: 0.01, resetsAt: now.addingTimeInterval(5 * hour - 60)).projectedUsed(in: .fiveHour, at: now) == nil)
+    }
+}
+
+struct ExtrasTests {
+
+    @Test func decodesReadingsCachedWithoutExtras() throws {
+        let json = #"{"assistant": "claude", "fetched": 0, "week": {"used": 0.5}}"#
+        let usage = try JSONDecoder().decode(AIUsage.self, from: Data(json.utf8))
+        #expect(usage.extras.isEmpty)
+        #expect(usage.week?.used == 0.5)
+    }
+
+    @Test func namesKeyedLimits() {
+        #expect(AIUsageAPI.claudeLimitName("fable") == "Fable")
+        #expect(AIUsageAPI.claudeLimitName("oauth_apps") == "Oauth Apps")
+    }
+}

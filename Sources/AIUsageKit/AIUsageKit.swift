@@ -70,6 +70,8 @@ public enum AIUsageDefaultsKey {
     /// Whether the Mac's menu bar extra is shown — the host reads it to insert the `MenuBarExtra`.
     public static let menuBarExtra = "aiUsageMenuBarExtra"
     public static let menuBarStyle = "aiUsageMenuBarStyle"
+    /// Whether a notification is scheduled for when a heavily spent limit resets.
+    public static let notifiesOnReset = "aiUsageNotifiesOnReset"
     /// What the AI usage widget has learned about how often each assistant's figures move.
     static let widgetPacing = "aiUsageWidgetPacing"
 
