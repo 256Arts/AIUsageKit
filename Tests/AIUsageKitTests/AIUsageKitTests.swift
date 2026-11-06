@@ -111,11 +111,15 @@ struct ProjectionTests {
         #expect(abs(projected - 0.5) < 0.001)
     }
 
-    @Test func pinsAnOverrunToTheEndOfTheBar() {
-        let limit = AIUsageLimit(used: 0.6, resetsAt: now.addingTimeInterval(3 * hour))
-        let display = AIUsageDisplay.default
-        #expect(display.projectedFraction(of: limit, in: .fiveHour, at: now) == 1)
-        #expect(AIUsageDisplay(metric: .remaining, timeStyle: .relative, goal: .none).projectedFraction(of: limit, in: .fiveHour, at: now) == 0)
+    @Test func projectsNothingForAnOverrun() {
+        // Two of five hours gone, 60% spent: runs out before the reset.
+        let overrun = AIUsageLimit(used: 0.6, resetsAt: now.addingTimeInterval(3 * hour))
+        #expect(AIUsageDisplay.default.projectedFraction(of: overrun, in: .fiveHour, at: now) == nil)
+        #expect(AIUsageDisplay(metric: .remaining, timeStyle: .relative, goal: .none).projectedFraction(of: overrun, in: .fiveHour, at: now) == nil)
+
+        // Exactly on course to hit the limit at the reset.
+        let exact = AIUsageLimit(used: 0.4, resetsAt: now.addingTimeInterval(3 * hour))
+        #expect(exact.projectedUsed(in: .fiveHour, at: now) == nil)
     }
 
     @Test func projectsNothingWithoutARate() {
@@ -138,5 +142,26 @@ struct ExtrasTests {
     @Test func namesKeyedLimits() {
         #expect(AIUsageAPI.claudeLimitName("fable") == "Fable")
         #expect(AIUsageAPI.claudeLimitName("oauth_apps") == "Oauth Apps")
+    }
+}
+
+struct CooldownTests {
+
+    @Test func rateLimitWaitsAsLongAsAsked() {
+        #expect(AIUsageError.rateLimited(.claude, retryAfter: 45).cooldown == 45)
+    }
+
+    @Test func rateLimitWithoutRetryAfterStillWaits() {
+        #expect(AIUsageError.rateLimited(.claude, retryAfter: nil).cooldown == 180)
+    }
+
+    @Test func rateLimitCooldownIsCapped() {
+        #expect(AIUsageError.rateLimited(.claude, retryAfter: 86_400).cooldown == AIUsageCache.freshness)
+        #expect(AIUsageError.rateLimited(.claude, retryAfter: -5).cooldown == 0)
+    }
+
+    @Test func refusedSignInWaitsButFailedConnectionDoesNot() {
+        #expect(AIUsageError.signInExpired.cooldown == AIUsageCache.freshness)
+        #expect(AIUsageError.assistant("Offline").cooldown == nil)
     }
 }

@@ -99,8 +99,8 @@ struct AIUsageProvider: AppIntentTimelineProvider {
         // reader's terminal out too.
         for assistant in wanted {
             do {
-                // A minute's grace, so a reading the open app has just handed over is used as it is.
-                usage.append(try await AIAssistants.shared.usage(for: assistant, maxAge: 60))
+                // The open app's grace, so a reading it has just handed over is used as it is.
+                usage.append(try await AIAssistants.shared.usage(for: assistant, maxAge: AIUsageCache.pollAge))
             } catch {
                 // One assistant failing should not blank the other, or throw away yesterday's
                 // figures: stale numbers still say roughly where the week stands.

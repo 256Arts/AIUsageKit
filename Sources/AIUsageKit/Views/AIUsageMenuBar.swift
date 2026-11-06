@@ -199,6 +199,7 @@ public struct AIUsageMenuBarLabel: View {
 
     @State private var usage: [AIUsage] = AIUsageCache.all()
     @State private var glyph = NSImage()
+    @State private var assistants = AIAssistants.shared
 
     @AppStorage(AIUsageDefaultsKey.metric, store: AIUsageKit.defaults) private var metric: AIUsageMetric = .used
     @AppStorage(AIUsageDefaultsKey.timeStyle, store: AIUsageKit.defaults) private var timeStyle: AIUsageTimeStyle = .relative
@@ -265,17 +266,18 @@ public struct AIUsageMenuBarLabel: View {
             .onChange(of: GlyphInputs(usage: shown, display: display, style: style, scale: displayScale)) {
                 renderGlyph()
             }
-        // Asks the assistants every minute, so the figure moves while the work is being done. A
-        // sign-in that fails is retried once per `freshness` instead, rather than every minute.
+            // A reading from anywhere in this process, like opening the menu, shows up right away.
+            .onChange(of: assistants.latest) {
+                usage = AIUsageCache.all()
+            }
+        // Checks every minute, so the figure moves while the work is being done.
         .task {
-            var retryAt = Date.distantPast
             while !Task.isCancelled {
                 // Shared with the app's window, and so also what keeps the widgets current while
                 // the extra is up. The last good reading stays on screen through a failure; the
                 // window is where one gets explained.
-                if retryAt <= .now, await !AIAssistants.shared.refreshConnected() {
-                    retryAt = .now.addingTimeInterval(AIUsageCache.freshness)
-                }
+                await assistants.refreshConnected()
+                // Also picks up what other processes read, like the widget.
                 usage = AIUsageCache.all()
                 // Also what redraws the countdowns each minute between refreshes.
                 renderGlyph()

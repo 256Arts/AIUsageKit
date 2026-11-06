@@ -139,7 +139,24 @@ public enum AIUsageError: LocalizedError {
     case signInExpired
     /// What was pasted or picked is not a sign-in this assistant issued.
     case unreadableSignIn(AIAssistant)
+    /// The assistant answered `429`, and how many seconds it said to wait, if it did.
+    case rateLimited(AIAssistant, retryAfter: TimeInterval?)
     case assistant(String)
+
+    /// How long to stop asking after this error, for the errors that asking again won't fix. A failed
+    /// connection isn't one of them: it is usually gone by the next minute.
+    ///
+    /// Capped, so a long `Retry-After` can't leave the figures stale for longer than they are worth.
+    var cooldown: TimeInterval? {
+        switch self {
+        case .signInExpired:
+            AIUsageCache.freshness
+        case .rateLimited(_, let retryAfter):
+            min(max(retryAfter ?? 3 * 60, 0), AIUsageCache.freshness)
+        default:
+            nil
+        }
+    }
 
     public var errorDescription: String? {
         switch self {
@@ -149,6 +166,8 @@ public enum AIUsageError: LocalizedError {
             String(localized: "The sign-in has expired. Sign in again in \(AIUsageKit.appName).", bundle: #bundle)
         case .unreadableSignIn(let assistant):
             String(localized: "That is not a \(assistant.name) sign-in.", bundle: #bundle)
+        case .rateLimited(let assistant, _):
+            String(localized: "\(assistant.name) could not be reached.", bundle: #bundle)
         case .assistant(let message):
             message
         }

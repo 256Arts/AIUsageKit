@@ -131,13 +131,11 @@ public struct AIUsageDisplay: Equatable, Sendable {
 
     /// Where a bar's tick sits, `0...1` in the bar's own terms: how full the window is projected to
     /// be when it resets, were the work to carry on at the rate it has so far. `nil` where there is
-    /// nothing to project — see `AIUsageLimit.projectedUsed`. A projection past the limit pins to the
-    /// end, which reads as "runs out before it resets".
+    /// nothing to project — see `AIUsageLimit.projectedUsed`.
     public func projectedFraction(of limit: AIUsageLimit, in window: AIUsageWindow, at date: Date = .now) -> Double? {
         guard let projected = limit.projectedUsed(in: window, at: date) else { return nil }
 
-        let used = min(projected, 1)
-        return metric == .used ? used : 1 - used
+        return metric == .used ? projected : 1 - projected
     }
 
     /// The part of the window this reading is about, `0...1` — what a bar or a gauge fills to.
@@ -280,14 +278,16 @@ extension AIUsageLimit {
     /// spent so far, scaled up from the share of the window that has passed.
     ///
     /// `nil` before there is a rate to speak of — nothing spent, no reset time, or under a twentieth
-    /// of the window gone, where one job swings the figure wildly — and once the window is full.
+    /// of the window gone, where one job swings the figure wildly — and once the window is full or on
+    /// course to fill before it resets, where a tick would only mark the end of the bar.
     public func projectedUsed(in window: AIUsageWindow, at date: Date = .now) -> Double? {
         guard used > 0, used < 1 else { return nil }
 
         let elapsed = pace(in: window, at: date)
         guard resetsAt != nil, elapsed >= 0.05 else { return nil }
 
-        return used / elapsed
+        let projected = used / elapsed
+        return projected < 1 ? projected : nil
     }
 }
 

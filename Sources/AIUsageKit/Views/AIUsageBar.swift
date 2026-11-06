@@ -94,7 +94,7 @@ extension AIUsageBar {
         let summary = display.summary(of: limit)
         guard showsProjection, let projected = limit.projectedUsed(in: window, at: now) else { return summary }
 
-        let percent = min(projected, 1).formatted(.percent.precision(.fractionLength(0)))
+        let percent = projected.formatted(.percent.precision(.fractionLength(0)))
         return String(localized: "\(summary), projected \(percent) used by the reset", bundle: #bundle)
     }
 }

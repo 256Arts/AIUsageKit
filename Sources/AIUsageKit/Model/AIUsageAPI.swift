@@ -303,6 +303,10 @@ public enum AIUsageAPI {
         if status == 401 || status == 403 || isRejectedGrant(data) {
             throw AIUsageError.signInExpired
         }
+        if status == 429 {
+            let retryAfter = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            throw AIUsageError.rateLimited(assistant, retryAfter: retryAfter)
+        }
         guard status == 200, let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             throw AIUsageError.assistant(String(localized: "\(assistant.name) could not be reached.", bundle: #bundle))
         }

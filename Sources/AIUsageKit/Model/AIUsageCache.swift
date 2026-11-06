@@ -16,6 +16,12 @@ public enum AIUsageCache {
     /// minutes of steady work, which is under the rounding on every figure the app draws.
     public static let freshness: TimeInterval = 15 * 60
 
+    /// How old a reading can be before the once-a-minute refresh asks again: every second minute,
+    /// less a little so a slow fetch does not push it to the third.
+    ///
+    /// The assistants answer `429` to about 4 in 10 requests made once a minute.
+    public static let pollAge: TimeInterval = 110
+
     private static let fileName = "ai-usage-cache.json"
 
     private static var storageURL: URL? {
@@ -58,5 +64,28 @@ public enum AIUsageCache {
         guard let storageURL, let data = try? JSONEncoder().encode(usage) else { return }
 
         try? data.write(to: storageURL)
+    }
+}
+
+/// Until when an assistant should be left alone, in the App Group since every process's requests
+/// count against the same limit.
+enum AIUsageCooldown {
+
+    private static func key(for assistant: AIAssistant) -> String {
+        "aiUsageCooldown.\(assistant.rawValue)"
+    }
+
+    static func isActive(for assistant: AIAssistant) -> Bool {
+        guard let until = AIUsageKit.defaults?.object(forKey: key(for: assistant)) as? Date else { return false }
+
+        return until > .now
+    }
+
+    static func start(for assistant: AIAssistant, lasting duration: TimeInterval) {
+        AIUsageKit.defaults?.set(Date.now.addingTimeInterval(duration), forKey: key(for: assistant))
+    }
+
+    static func clear(_ assistant: AIAssistant) {
+        AIUsageKit.defaults?.removeObject(forKey: key(for: assistant))
     }
 }

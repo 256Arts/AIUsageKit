@@ -79,6 +79,7 @@ public final class AIAssistants {
         latest[signIn.assistant] = nil
         failures[signIn.assistant] = nil
         AIUsageCache.clear(signIn.assistant)
+        AIUsageCooldown.clear(signIn.assistant)
     }
 
     public func disconnect(_ assistant: AIAssistant) {
@@ -90,6 +91,7 @@ public final class AIAssistants {
         signIns.removeAll { $0.assistant == assistant }
         persist()
         AIUsageCache.clear(assistant)
+        AIUsageCooldown.clear(assistant)
         Task { await AIUsageNotifications.cancel(assistant) }
     }
 
@@ -139,11 +141,19 @@ public final class AIAssistants {
     ///
     /// A deliberate refresh passes `0`, and always asks. Everything that draws on its own schedule —
     /// a widget timeline, the menu bar extra opening, the home screen appearing — leaves it alone, so
-    /// the four of them together still only ask as often as one of them would.
+    /// the four of them together still only ask as often as one of them would. Those also respect a
+    /// cooldown, making do with the last reading until it is over.
     public func usage(for assistant: AIAssistant, maxAge: TimeInterval = AIUsageCache.freshness) async throws -> AIUsage {
         reload()
         if maxAge > 0, let cached = AIUsageCache.usage(for: assistant),
            cached.fetched.timeIntervalSinceNow > -maxAge || cached.exhaustedUntil() != nil {
+            latest[assistant] = cached
+            return cached
+        }
+        if maxAge > 0, AIUsageCooldown.isActive(for: assistant) {
+            guard let cached = AIUsageCache.usage(for: assistant) else {
+                throw failures[assistant] ?? AIUsageError.rateLimited(assistant, retryAfter: nil)
+            }
             latest[assistant] = cached
             return cached
         }
@@ -162,8 +172,12 @@ public final class AIAssistants {
             throw CancellationError()
         } catch {
             failures[assistant] = error
+            if let cooldown = (error as? AIUsageError)?.cooldown {
+                AIUsageCooldown.start(for: assistant, lasting: cooldown)
+            }
             throw error
         }
+        AIUsageCooldown.clear(assistant)
         AIUsageCache.save(usage)
         await AIUsageNotifications.schedule(usage)
         latest[assistant] = usage
@@ -175,15 +189,15 @@ public final class AIAssistants {
     /// extra — so the figures move while the work is being done: every connected assistant asked in
     /// turn, then the AI usage widget told to redraw from what came back.
     ///
-    /// Half the minute as the cache age by default, so a reading another process took in the last
-    /// half minute is as good as one of our own and two open surfaces do not each ask. The widget
+    /// `AIUsageCache.pollAge` as the cache age by default, so every other call actually asks, and a
+    /// reading another process just took is as good as one of our own. The widget
     /// reload is free while the app is in the foreground — WidgetKit only budgets the reloads a
     /// widget asks for itself — and its timeline finds this reading in the cache rather than
     /// fetching again.
     ///
     /// Returns whether every assistant answered.
     @discardableResult
-    public func refreshConnected(maxAge: TimeInterval = 30) async -> Bool {
+    public func refreshConnected(maxAge: TimeInterval = AIUsageCache.pollAge) async -> Bool {
         reload()
         guard !connected.isEmpty else { return true }
 
