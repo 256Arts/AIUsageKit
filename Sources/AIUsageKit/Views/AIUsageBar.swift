@@ -79,6 +79,9 @@ public struct AIUsageBar: View {
                         }
                     }
                     .foregroundStyle(.secondary)
+                    // A used bar fills towards its far end, which is where the reset waits for it.
+                    .multilineTextAlignment(display.metric == .used ? .trailing : .leading)
+                    .frame(maxWidth: .infinity, alignment: display.metric == .used ? .trailing : .leading)
                 }
             }
             .accessibilityElement(children: .ignore)
