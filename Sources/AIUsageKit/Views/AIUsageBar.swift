@@ -142,10 +142,11 @@ public struct AIUsageTrack: View {
                         Capsule()
                             .fill(.primary)
                             .overlay(Capsule().stroke(.background, lineWidth: 0.5))
-                            .frame(width: width, height: height + 4)
+                            .frame(width: width, height: height)
                             .offset(x: min(max(proxy.size.width * min(max(marker, 0), 1) - width / 2, 0), proxy.size.width - width))
                             .frame(maxHeight: .infinity)
                     }
+                    .clipShape(.capsule)
                 }
             }
             .frame(height: height)
