@@ -84,6 +84,18 @@ struct DisplayTests {
         #expect([codex, claude].closestToRunningOut?.assistant == .claude)
     }
 
+    @Test func headlinesAUsableAssistantOverOneThatHasRunOut() {
+        let claude = usage(fiveHour: 0.6, week: 0.7)
+        let codex = AIUsage(assistant: .codex, plan: nil, fiveHour: nil, week: AIUsageLimit(used: 1, resetsAt: now.addingTimeInterval(2 * 24 * 60 * 60)), fetched: now)
+        #expect([codex, claude].closestToRunningOut(at: now)?.assistant == .claude)
+    }
+
+    @Test func headlinesTheFirstToComeBackWhenAllHaveRunOut() {
+        let claude = usage(fiveHour: 1, week: 1)
+        let codex = AIUsage(assistant: .codex, plan: nil, fiveHour: nil, week: AIUsageLimit(used: 1, resetsAt: now.addingTimeInterval(60 * 60)), fetched: now)
+        #expect([claude, codex].closestToRunningOut(at: now)?.assistant == .codex)
+    }
+
     @Test func exhaustedUntilTheLaterReset() {
         let exhausted = usage(fiveHour: 1, week: 1)
         #expect(exhausted.exhaustedUntil(at: now) == now.addingTimeInterval(3 * 24 * 60 * 60))

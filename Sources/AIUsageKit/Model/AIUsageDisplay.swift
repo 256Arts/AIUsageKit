@@ -374,9 +374,23 @@ extension AIUsage {
 
 extension Sequence<AIUsage> {
 
-    /// The assistant whose limit is about to matter: the least `headroom`, for the surfaces with
-    /// room for one.
+    /// The assistant whose limit is about to matter, for the surfaces with room for one: the least
+    /// `headroom` among those that can still be used.
+    ///
+    /// An assistant that has run out is passed over while another still has work left: nothing can
+    /// be done with it until it resets, so "100% used" only hides the figure the next job depends
+    /// on. With every one out, the one that comes back first.
     public var closestToRunningOut: AIUsage? {
-        self.min { ($0.headroom ?? .infinity) < ($1.headroom ?? .infinity) }
+        closestToRunningOut()
+    }
+
+    /// `closestToRunningOut` as of `date` — a widget's future timeline entry, where a reset may have
+    /// passed.
+    public func closestToRunningOut(at date: Date = .now) -> AIUsage? {
+        let usable = filter { $0.exhaustedUntil(at: date) == nil }
+        guard usable.isEmpty else {
+            return usable.min { ($0.headroom ?? .infinity) < ($1.headroom ?? .infinity) }
+        }
+        return self.min { ($0.exhaustedUntil(at: date) ?? .distantFuture) < ($1.exhaustedUntil(at: date) ?? .distantFuture) }
     }
 }
