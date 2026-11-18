@@ -102,3 +102,15 @@ extension Data {
             .replacingOccurrences(of: "=", with: "")
     }
 }
+
+/// ``Text(updated:)`` inside a `TimelineView`, for windows that stay open. A `.currentDate` text
+/// can sit frozen in a long-lived window such as a menu bar extra's, so this redraws it each minute.
+struct UpdatedText: View {
+    let date: Date
+
+    var body: some View {
+        TimelineView(.everyMinute) { _ in
+            Text(updated: date)
+        }
+    }
+}

@@ -89,7 +89,7 @@ public struct AIUsageSection: View {
                     // this is often older than the moment the screen was opened — which is the
                     // point of showing it.
                     if let read = usage.values.map(\.fetched).min() {
-                        Text(updated: read)
+                        UpdatedText(date: read)
                     }
 
                     ForEach(display.warningReasons(for: usage.values), id: \.self) { reason in

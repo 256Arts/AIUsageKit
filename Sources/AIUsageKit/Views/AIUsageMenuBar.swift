@@ -82,7 +82,7 @@ public struct AIUsageMenuBar: View {
                     if refreshing {
                         Text("Updating…", bundle: #bundle)
                     } else if let lastRefresh {
-                        Text(updated: lastRefresh)
+                        UpdatedText(date: lastRefresh)
                     }
                 }
                 .font(.caption)
